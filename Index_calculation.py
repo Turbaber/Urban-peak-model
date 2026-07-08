@@ -77,21 +77,31 @@ for k in range(len(list_cities)):
     ABH = BV_m_km2 / (math.pi * UBD * UBD)
     ws.cell(row=k + 2, column=8).value = ABH
 
-    #TDC
-    rr = UBD * 1000
-    para_b = list_b[k] * 1000
-    para_c = list_c[k] * 1000
-    BV = BV_m_km2 * 1000000
-    min_y = (para_a-para_d) * e ** ((-(rr - para_b)**2) /(2*(para_c**2) )) +para_d
-    max_y = para_a
-    def f(y, a, b, c ,d):
-        return 2 * math.pi * (c * (2* sp.log((a-d)/(y-d))) ** 0.5 + b) * (1 + (-c/((y-d)*(2*sp.log((a-d)/(y-d)))**0.5)) ** 2) ** 0.5
-    S_1, err = integrate.quad(f, min_y, max_y, args = (para_a, para_b, para_c, para_d), limit=100)
-    S_2 = 2 * math.pi * (para_b + 2 * para_c) * ((para_a - para_d) * e**(-2) + para_d)
-    S_tol = S_1 + S_2
-    TDC = 100 * 3 * (2 * math.pi)**2 * BV/S_tol**(3/2)
-    ws.cell(row=k + 2, column=9).value = float(TDC)
+    # TDC
+    r_values = np.linspace(0, UBD, 4000)
 
+    dh_dr_km_per_km = (
+                              -(para_a - para_d)
+                              * (r_values - para_b)
+                              / (para_c ** 2)
+                              * np.exp(-0.5 * ((r_values - para_b) / para_c) ** 2)
+                      ) / 1000
+
+    S_2 = 2 * math.pi * np.trapz(
+        r_values * np.sqrt(1 + dh_dr_km_per_km ** 2),
+        r_values
+    )
+
+    boundary_height_km = ((para_a - para_d) * math.exp(-2) + para_d) / 1000
+    S_1 = 2 * math.pi * UBD * boundary_height_km
+
+    S_tol = S_1 + S_2
+
+    hemi_radius_km = math.sqrt(S_tol / (3 * math.pi))
+    hemi_volume_km3 = (2 / 3) * math.pi * hemi_radius_km ** 3
+
+    TDC = BV_km3 / hemi_volume_km3 * 1000
+    ws.cell(row=k + 2, column=9).value = float(TDC)
 
 
     print(filepath)
