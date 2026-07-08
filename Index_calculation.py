@@ -52,25 +52,36 @@ for k in range(len(list_cities)):
     CD = ((para_a-para_d)*(e**2-1))/(2*para_c*e**2)
     ws.cell(row=k + 2, column=6).value = CD
 
-    #BV
-    V_1 = math.pi*((para_b + 2*para_c)**2) * ((para_a-para_d)/(e**2)+para_d)
+    # BV
+    R = para_b + 2 * para_c
     F_a = norm.cdf(2, 0, 1)
-    F_b = norm.cdf(-(para_b/para_c), 0, 1)
-    left_ = 2 * math.pi * para_c * para_c*(e**(-(para_b**2)/(2*para_c*para_c)) - e**(-2))
-    right_ = ((2*math.pi)**1.5) * para_b *para_c *(F_a-F_b)
-    V_2 = (para_a - para_d)*(left_ + right_)
-    BV = V_1 + V_2
-    ws.cell(row=k + 2, column=7).value = BV
+    F_b = norm.cdf(-(para_b / para_c), 0, 1)
 
-    #ABH
-    ABH = BV/(math.pi*UBD*UBD)
+    base_height = (para_a - para_d) * math.exp(-2) + para_d
+    V_1 = math.pi * R ** 2 * base_height
+
+    left_ = 2 * math.pi * para_c ** 2 * (
+            math.exp(-(para_b ** 2) / (2 * para_c ** 2)) - math.exp(-2)
+    )
+    right_ = (2 * math.pi) ** 1.5 * para_b * para_c * (F_a - F_b)
+
+    V_2 = (para_a - para_d) * (
+            left_ + right_ - math.pi * R ** 2 * math.exp(-2)
+    )
+
+    BV_m_km2 = V_1 + V_2
+    BV_km3 = BV_m_km2 / 1000
+    ws.cell(row=k + 2, column=7).value = BV_km3
+
+    # ABH
+    ABH = BV_m_km2 / (math.pi * UBD * UBD)
     ws.cell(row=k + 2, column=8).value = ABH
 
     #TDC
     rr = UBD * 1000
     para_b = list_b[k] * 1000
     para_c = list_c[k] * 1000
-    BV = BV * 1000000
+    BV = BV_m_km2 * 1000000
     min_y = (para_a-para_d) * e ** ((-(rr - para_b)**2) /(2*(para_c**2) )) +para_d
     max_y = para_a
     def f(y, a, b, c ,d):
